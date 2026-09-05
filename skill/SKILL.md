@@ -97,15 +97,30 @@ export default plugin
 ## Showing the Omarchy screensaver mustache
 
 The Omarchy screensaver renders `~/.config/omarchy/branding/screensaver.txt`
-through `ttfx`. To show that same art on the opencode welcome screen, have the
-slot read the file at load time so the two stay in sync:
+through `ttfx`. To show that same art on the opencode welcome screen, load it
+from a bundled `screensaver.txt` next to the plugin file, falling back to the
+live branding path so the two stay in sync on Omarchy:
 
 ```tsx
 import { readFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { join } from "node:path"
+import { fileURLToPath } from "node:url"
 
-const ART = readFileSync(join(homedir(), ".config", "omarchy", "branding", "screensaver.txt"), "utf8")
+const read = (path: string) => {
+  try {
+    return readFileSync(path, "utf8")
+  } catch {
+    return undefined
+  }
+}
+
+const art =
+  read(fileURLToPath(new URL("./screensaver.txt", import.meta.url))) ??
+  read(join(homedir(), ".config", "omarchy", "branding", "screensaver.txt")) ??
+  ""
+
+const ART = art
   .replaceAll("\r", "")
   .trimEnd()
   .split("\n")
@@ -113,8 +128,9 @@ const ART = readFileSync(join(homedir(), ".config", "omarchy", "branding", "scre
 ```
 
 Then render `ART` as in the example above. The art is roughly 80 columns wide
-and fits standard terminals. Any change to `screensaver.txt` shows up on the
-next opencode restart.
+and fits standard terminals. If a `screensaver.txt` sits next to the plugin
+file it wins (self-contained installs); otherwise the Omarchy branding file is
+used, so any change there shows up on the next opencode restart.
 
 ## Theme tokens
 
